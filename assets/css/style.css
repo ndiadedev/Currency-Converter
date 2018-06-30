@@ -314,6 +314,9 @@ button#clicktoconvert:hover {
 .main-agileinfo {
     width: 55%; 
 } 
+.card-details input { 
+    margin-top: 26.6px;
+}
 } 
 @media(max-width:1080px){
 .main-agileinfo {
