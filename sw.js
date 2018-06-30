@@ -10,6 +10,7 @@
  const FilesToCache = [
         `/`,
         `./index.html`,
+        `./sw.js`,
         `assets/css/style.css`,
         `assets/css/font-awesome.css`,
         `assets/fonts/fontawesome-webfont.eot`,
