@@ -6,67 +6,76 @@
  *  Set cache files for offline purpose
  *
  */
- const cacheName = 'mws-currency';
+ const cacheNameCurrency = 'mws-currencyConvert-v1';
  const FilesToCache = [
-        `/`,
-        `https://github.com/ndiadedev/Currency-Converter/blob/master/index.html`,
-        `https://github.com/ndiadedev/Currency-Converter/blob/master/sw.js`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/css/style.css`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/css/font-awesome.css`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/fontawesome-webfont.eot`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/fontawesome-webfont.svg`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/fontawesome-webfont.ttf`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/fontawesome-webfont.woff`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/fontawesome-webfont.woff2`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/fonts/FontAwesome.otf`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/images/bg.jpg`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/images/favicon.png`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/assets/images/img1.jpg`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/js/jquery-1.11.1.min.js`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/js/idb.js`,
-        `https://github.com/ndiadedev/Currency-Converter/tree/master/js/main.js`,
-        `https://fonts.googleapis.com/css?family=Maven+Pro:900|Yantramanav:400,500,700`,
-        'https://free.currencyconverterapi.com/api/v5/currencies'      
+      
+        `./index.html`,
+        `./sw.js`,
+        `assets/css/style.css`,
+        `assets/images/bg.jpg`,
+        `assets/images/favicon.png`,
+        `assets/images/img1.jpg`,
+        `js/idb.js`,
+        `js/mainConvert.js`,
+        'https://free.currencyconverterapi.com/api/v5/currencies'           
  ];
 
-//Install cache
- self.addEventListener('install', event => {
+self.addEventListener('install', (event)=>{
+  //console.log('serviceWorker installing');
+
     event.waitUntil(
-        caches.open(cacheName)
-        .then(cache => {
-            console.info('caching files');
-            return cache.addAll(FilesToCache);
-        })
-    );
+      caches.open(cacheNameCurrency).then((cache)=>{
+      //console.log('caching files for offline purpose');
+      return cache.addAll(FilesToCache);
+  }));
+
 });
 
-//Activate cache
-self.addEventListener('activate', event => {
-  event.waitUntil(
-      caches.keys()
-        .then(keyList => Promise.all(keyList.map(keyCache => {
-        if (keyCache !== cacheName){
-            console.log("removing cached files", keyCache);
-            return caches.delete(keyCache);        
-        }
-    })))
-    );
-  return self.clients.claim();
+self.addEventListener('activate', (event)=>{
+
+  event.waitUntil(caches.keys().then((cacheNames)=>{
+    return Promise.all(cacheNames.map((cacheName)=>{
+      if(cacheName !== cacheNameCurrency){
+        //console.log('deleting old cache from ',cacheName);
+        return caches.delete(cacheNameCurrency);
+      }       
+    }));
+  }));
+  //console.log('serviceWorker activated');
 });
 
-//Fetching data
-self.addEventListener('fetch', event => {
-  event.respondWith(caches.match(event.request)
-    .then(response => response || fetch(event.request)
-      .then(response => caches.open(cacheName)
-        .then(cache => {
-          cache.put(event.request, response);
-            return response.clone();
-          }) 
-          .catch(event => {
-          console.log('error caching and fetching');
-        }))
-      ));
+self.addEventListener('fetch', (event)=>{
+ 
+    event.respondWith(
+      //function tries to get resource from cache after user getting offline,
+      //otherwise loads from the network resources
+        serveCurrency(event.request)
+      );
+  });
+
+//function that responds to request
+//and checks for request in the cache,
+//if no cache, it loads from the network resources
+serveCurrency = (request)=>{
+  let currUrl = request.url;
+  //opning cache resources
+  return caches.open(cacheNameCurrency).then((cache)=>{
+    //try match the request with the request in the cache resources
+    return cache.match(currUrl).then((response)=>{
+      if (response) {
+        //console.log('serviceWorker Response found in cache resources ', request.url);
+        return response;
+      }
+      //if no request cached, fetch from the network resources
+      return fetch(request).then((networkResponse)=>{
+        //add new request into the cache resources
+        cache.put(currUrl, networkResponse.clone());
+        return networkResponse;
+      }).catch((error)=>{
+      console.log('Error occurred while getting data. Check internet connection.',error);
     });
+    });
+  }
+ )}
         
       
